@@ -35,9 +35,45 @@
   :group 'languages
   :link '(url-link "https://likec4.dev"))
 
-(defcustom likec4-lsp-command '("likec4" "lsp" "--stdio")
-  "Command and arguments used to start the LikeC4 language server."
-  :type '(repeat string))
+(defcustom likec4-lsp-command nil
+  "Command and arguments used to start the LikeC4 language server.
+When nil, run the npm-managed server from `likec4-server-install-dir',
+installing it with `likec4-install-server' if missing."
+  :type '(choice (const :tag "npm-managed" nil) (repeat string)))
+
+(defcustom likec4-server-install-dir (locate-user-emacs-file "likec4-server/")
+  "Directory where `likec4-install-server' installs the npm package."
+  :type 'directory)
+
+(defcustom likec4-server-npm-package "likec4@latest"
+  "Package spec installed from npm by `likec4-install-server', e.g. likec4@1.40.0."
+  :type 'string)
+
+(defun likec4--server-executable ()
+  "Return the npm-managed LikeC4 executable, or nil if not installed."
+  (locate-file "likec4"
+               (list (expand-file-name "node_modules/.bin" likec4-server-install-dir))
+               exec-suffixes #'file-executable-p))
+
+(defun likec4--lsp-command ()
+  "Return the LikeC4 language server command, or nil if unavailable."
+  (or likec4-lsp-command
+      (when-let* ((exe (likec4--server-executable)))
+        (list exe "lsp" "--stdio"))))
+
+;;;###autoload
+(defun likec4-install-server ()
+  "Install or update the LikeC4 language server from npm."
+  (interactive)
+  (let ((npm (or (executable-find "npm") (user-error "Cannot find npm")))
+        (dir (expand-file-name likec4-server-install-dir)))
+    (make-directory dir t)
+    (message "Installing %s into %s..." likec4-server-npm-package dir)
+    ;; ponytail: synchronous, blocks Emacs during install; go async if it bothers anyone
+    (unless (zerop (call-process npm nil "*likec4-install*" nil
+                                 "install" "--prefix" dir likec4-server-npm-package))
+      (error "Installing %s failed, see *likec4-install*" likec4-server-npm-package))
+    (message "Installed %s" likec4-server-npm-package)))
 
 (defcustom likec4-indent-offset 2
   "Indentation offset for `likec4-mode'."
@@ -119,7 +155,10 @@
 
 (defun likec4--eglot-contact (&optional _interactive)
   "Return the Eglot contact for the LikeC4 language server."
-  likec4-lsp-command)
+  (or (likec4--lsp-command)
+      (and (y-or-n-p "LikeC4 language server not installed, install it from npm? ")
+           (progn (likec4-install-server) (likec4--lsp-command)))
+      (user-error "LikeC4 language server not available, see `likec4-install-server'")))
 
 (defvar eglot-server-programs)
 (with-eval-after-load 'eglot
@@ -134,8 +173,13 @@
   (add-to-list 'lsp-language-id-configuration '(likec4-mode . "likec4"))
   (lsp-register-client
    (make-lsp-client
-    :new-connection (lsp-stdio-connection (lambda () likec4-lsp-command))
+    :new-connection (lsp-stdio-connection #'likec4--lsp-command
+                                          (lambda () (and (likec4--lsp-command) t)))
     :activation-fn (lsp-activate-on "likec4")
+    :download-server-fn (lambda (_client callback error-callback _update?)
+                          (condition-case err
+                              (progn (likec4-install-server) (funcall callback))
+                            (error (funcall error-callback (error-message-string err)))))
     :server-id 'likec4)))
 
 (provide 'likec4)

@@ -8,13 +8,19 @@ The language server provides completion, diagnostics, go-to-definition,
 hover and semantic highlighting; the mode itself provides basic font-lock,
 comments and brace indentation.
 
-## Prerequisites
+## Language server
 
-```sh
-npm install -g likec4
+Requires `npm`. By default the server is installed from npm into
+`likec4-server-install-dir` (`~/.emacs.d/likec4-server/`): Eglot and lsp-mode
+offer to install it on first use, or run `M-x likec4-install-server`
+(also updates). lsp-mode's `lsp-install-server` / `lsp-update-server` work too.
+
+Pin a version with `likec4-server-npm-package` (default `likec4@latest`), or
+use your own binary:
+
+```elisp
+(setq likec4-lsp-command '("likec4" "lsp" "--stdio"))
 ```
-
-The server is started as `likec4 lsp --stdio` (customize `likec4-lsp-command`).
 
 ## Vanilla Emacs
 

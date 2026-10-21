@@ -30,8 +30,17 @@
 
 (ert-deftest likec4-eglot-registration ()
   (skip-unless (require 'eglot nil t))
-  (let ((entry (assq 'likec4-mode eglot-server-programs)))
-    (should entry)
-    (should (equal (funcall (cdr entry) nil) likec4-lsp-command))))
+  (let* ((likec4-server-install-dir (make-temp-file "likec4" t))
+         (bin (expand-file-name "node_modules/.bin" likec4-server-install-dir))
+         (exe (expand-file-name "likec4" bin))
+         (contact (cdr (assq 'likec4-mode eglot-server-programs))))
+    (should contact)
+    (make-directory bin t)
+    (write-region "" nil exe)
+    (set-file-modes exe #o755)
+    (should (equal (funcall contact nil) (list exe "lsp" "--stdio")))
+    (let ((likec4-lsp-command '("x")))
+      (should (equal (funcall contact nil) '("x"))))
+    (delete-directory likec4-server-install-dir t)))
 
 ;;; likec4-test.el ends here
