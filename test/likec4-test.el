@@ -28,6 +28,13 @@
     (should-not (nth 4 (syntax-ppss)))
     (should (eq (get-text-property (point-min) 'face) 'font-lock-keyword-face))))
 
+(ert-deftest likec4-format-indent-offset ()
+  (let ((likec4-indent-offset 4))
+    (with-temp-buffer
+      (likec4-mode)
+      (should (= tab-width 4))
+      (should-not indent-tabs-mode))))
+
 (ert-deftest likec4-eglot-registration ()
   (skip-unless (require 'eglot nil t))
   (let* ((likec4-server-install-dir (make-temp-file "likec4" t))

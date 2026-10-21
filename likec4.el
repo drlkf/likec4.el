@@ -148,6 +148,9 @@ installing it with `likec4-install-server' if missing."
   (setq-local comment-start-skip "\\(?://+\\|/\\*+\\)\\s-*")
   (setq-local font-lock-defaults '(likec4--font-lock-keywords))
   (setq-local indent-line-function #'likec4-indent-line)
+  ;; Eglot sends `tab-width' as the LSP formatting tabSize
+  (setq-local tab-width likec4-indent-offset)
+  (setq-local indent-tabs-mode nil)
   (setq-local electric-indent-chars (append "{}()" electric-indent-chars)))
 
 ;;;###autoload
@@ -165,12 +168,14 @@ installing it with `likec4-install-server' if missing."
   (add-to-list 'eglot-server-programs '(likec4-mode . likec4--eglot-contact)))
 
 (defvar lsp-language-id-configuration)
+(defvar lsp--formatting-indent-alist)
 (declare-function lsp-register-client "ext:lsp-mode" (client))
 (declare-function make-lsp-client "ext:lsp-mode" (&rest args))
 (declare-function lsp-stdio-connection "ext:lsp-mode" (command &optional test-command))
 (declare-function lsp-activate-on "ext:lsp-mode" (&rest languages))
 (with-eval-after-load 'lsp-mode
   (add-to-list 'lsp-language-id-configuration '(likec4-mode . "likec4"))
+  (add-to-list 'lsp--formatting-indent-alist '(likec4-mode . likec4-indent-offset))
   (lsp-register-client
    (make-lsp-client
     :new-connection (lsp-stdio-connection #'likec4--lsp-command
