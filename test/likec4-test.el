@@ -50,4 +50,12 @@
       (should (equal (funcall contact nil) '("x"))))
     (delete-directory likec4-server-install-dir t)))
 
+(ert-deftest likec4-lsp-notification-handlers ()
+  (skip-unless (require 'lsp-mode nil t))
+  (let ((client (gethash 'likec4 lsp-clients)))
+    (should client)
+    (should (eq (gethash "likec4/onDidChangeModel"
+                         (lsp--client-notification-handlers client))
+                #'ignore))))
+
 ;;; likec4-test.el ends here

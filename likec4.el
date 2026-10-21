@@ -181,6 +181,9 @@ installing it with `likec4-install-server' if missing."
     :new-connection (lsp-stdio-connection #'likec4--lsp-command
                                           (lambda () (and (likec4--lsp-command) t)))
     :activation-fn (lsp-activate-on "likec4")
+    :notification-handlers (let ((h (make-hash-table :test #'equal)))
+                             (puthash "likec4/onDidChangeModel" #'ignore h)
+                             h)
     :download-server-fn (lambda (_client callback error-callback _update?)
                           (condition-case err
                               (progn (likec4-install-server) (funcall callback))
